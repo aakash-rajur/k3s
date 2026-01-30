@@ -34,6 +34,7 @@ var (
 	portDriverEnv      = "K3S_ROOTLESS_PORT_DRIVER"
 	disableLoopbackEnv = "K3S_ROOTLESS_DISABLE_HOST_LOOPBACK"
 	copyUpDirsEnv      = "K3S_ROOTLESS_COPYUPDIRS"
+	propagationEnv     = "K3S_ROOTLESS_PROPAGATION"
 )
 
 func Rootless(stateDir string, enableIPv6 bool) error {
@@ -144,6 +145,7 @@ func createParentOpt(driver portDriver, stateDir string, enableIPv6 bool) (*pare
 		CreateCgroupNS: true,
 		CreateUTSNS:    true,
 		CreateIPCNS:    true,
+		Propagation:    "private",
 	}
 
 	selfCgroupMap, err := cgroups.ParseCgroupFile("/proc/self/cgroup")
@@ -211,6 +213,16 @@ func createParentOpt(driver portDriver, stateDir string, enableIPv6 bool) (*pare
 	}
 
 	opt.PipeFDEnvKey = pipeFD
+
+	propagation := "private"
+	if val := os.Getenv(propagationEnv); val != "" {
+		if val != "private" && val != "shared" {
+			logrus.Warn("Failed to parse rootless disable-host-loopback value; using default")
+		} else {
+			propagation = val
+		}
+	}
+	opt.Propagation = propagation
 
 	return opt, nil
 }
